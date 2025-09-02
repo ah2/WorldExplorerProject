@@ -1,110 +1,97 @@
-import tkinter as tk
-from tkinter import messagebox
+import os
 import requests
 import folium
 import webview
-import os
-
+import json
 
 # --- CONFIG ---
 API_KEY = "live_hjhCLZC77ZllJ5OCoJlp7zXS2s2uGAbQzzwie6aMzaYB6JuzouDu88j106WCYlz0"
 BASE_URL = "https://api.overturemapsapi.com/places"
+CATEGORIES = ["restaurant", "cafe", "park", "landmark", "all"]
 
-# Predefined city centers (lat, lon)
-CITIES = {
-    "Dubai": (25.2048, 55.2708),
-    "Paris": (48.8566, 2.3522),
-    "New York": (40.7128, -74.0060),
-    "Tokyo": (35.6895, 139.6917),
-}
-
-
-def fetch_places(lat, lng):
-    """Fetch places around given coordinates from OvertureMaps"""
-    bbox_size = 0.05
-    bbox = f"{lng - bbox_size},{lat - bbox_size},{lng + bbox_size},{lat + bbox_size}"
-
-    radius = 1000
-
+# --- Fetch places ---
+def fetch_places(lat, lng, category="all"):
     headers = {"x-api-key": f"{API_KEY}"}
-    params = { "lat": lat,"lng": lng, "radius": radius,"limit": 20, "dataset": "places"}
+    params = {"lat": lat, "lng": lng, "radius": 5000, "limit": 50}
+    if category != "all":
+        params["category"] = category
 
     resp = requests.get(BASE_URL, headers=headers, params=params)
     if resp.status_code != 200:
-        messagebox.showerror("API Error", f"Failed: {resp.status_code}\n{resp.text}")
-        print(resp.text)
         return []
 
     data = resp.json()
-    print(data)
-
-    # Handle both dict (GeoJSON) or list formats
-    if isinstance(data, dict):
-        features = data.get("features", [])
-    elif isinstance(data, list):
-        features = data
-    else:
-        features = []
-
+    features = data if isinstance(data, list) else data.get("features", [])
     places = []
+
     for feat in features:
-        if "geometry" in feat:  # GeoJSON
+        if "geometry" in feat:
             coords = feat["geometry"]["coordinates"]
             props = feat.get("properties", {})
             name = props.get("name", "Unnamed")
-            category = props.get("category", "Unknown")
-            places.append((coords[1], coords[0], name, category))
-        else:  # Flat list
+            cat = props.get("category", "Unknown")
+            places.append((coords[1], coords[0], name, cat))
+        else:
             lat_ = feat.get("lat")
             lon_ = feat.get("lon")
             name = feat.get("name", "Unnamed")
-            category = feat.get("category", "Unknown")
+            cat = feat.get("category", "Unknown")
             if lat_ and lon_:
-                places.append((lat_, lon_, name, category))
+                places.append((lat_, lon_, name, cat))
     return places
 
+# --- Map generation ---
+def generate_map(lat, lng, category="all"):
+    places = fetch_places(lat, lng, category)
+    m = folium.Map(location=[lat, lng], zoom_start=13)
 
-def show_map(city_name):
-    lat, lon = CITIES[city_name]
-    places = fetch_places(lat, lon)
+    for lat_, lon_, name, cat in places:
+        folium.Marker([lat_, lon_], popup=f"<b>{name}</b><br>{cat}", tooltip=name).add_to(m)
 
-    if not places:
-        messagebox.showinfo("No Results", f"No places found for {city_name}.")
-        return
+    # Add click listener to map
+    m.add_child(folium.LatLngPopup())
 
-    # Create folium map
-    m = folium.Map(location=[lat, lon], zoom_start=13)
-    for lat_, lon_, name, category in places:
-        folium.Marker(
-            [lat_, lon_],
-            popup=f"<b>{name}</b><br>Category: {category}",
-            tooltip=name,
-        ).add_to(m)
+    # Add custom JS to call Python callback
+    m.get_root().html.add_child(folium.Element("""
+        <script>
+        function sendLatLng(lat, lng){
+            if(window.pywebview){
+                window.pywebview.api.on_click(lat, lng);
+            }
+        }
 
-    # Save HTML map
-    map_file = os.path.join(os.getcwd(), "map.html")
+        document.addEventListener('click', function(e){
+            var coords = document.getElementsByClassName('leaflet-popup-content');
+            if(coords.length){
+                var text = coords[0].innerText.split(",");
+                var lat = parseFloat(text[0]);
+                var lng = parseFloat(text[1]);
+                sendLatLng(lat, lng);
+            }
+        });
+        </script>
+    """))
+
+    map_file = os.path.join(os.getcwd(), "click_map.html")
     m.save(map_file)
+    return map_file
 
-    # Open map inside pywebview
-    webview.create_window(f"🌍 World Explorer - {city_name}", map_file, width=800, height=600)
+# --- API exposed to JS ---
+class Api:
+    def __init__(self, category="all"):
+        self.category = category
 
+    def on_click(self, lat, lng):
+        print(f"Clicked at: {lat}, {lng}")
+        map_file = generate_map(lat, lng, self.category)
+        webview.load_url(map_file)  # reload map with new markers
 
-# --- GUI ---
-root = tk.Tk()
-root.title("🌍 World Explorer")
+# --- Launch app ---
+def start_app():
+    lat, lng = 25.2048, 55.2708  # default starting point (Dubai)
+    map_file = generate_map(lat, lng)
+    api = Api(category="all")
+    window = webview.create_window("🌍 Click to Explore", map_file, width=900, height=650, js_api=api)
+    webview.start(gui="tk")
 
-tk.Label(root, text="Select a City:").pack(pady=5)
-
-city_var = tk.StringVar(value="Dubai")
-city_menu = tk.OptionMenu(root, city_var, *CITIES.keys())
-city_menu.pack(pady=5)
-
-
-def on_search():
-    city = city_var.get()
-    show_map(city)
-
-
-tk.Button(root, text="Explore", command=on_search).pack(pady=10)
-
-root.mainloop()
+start_app()
