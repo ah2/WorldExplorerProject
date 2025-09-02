@@ -1,158 +1,31 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <meta charset="utf-8">
-    <title>Interactive Map</title>
-    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
-    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
-    <style>
-        html, body { height: 100%; margin: 0; padding: 0; font-family: Arial, sans-serif; }
-        #map { height: 100%; width: 75%; float: left; }
-        #sidebar { height: 100%; width: 25%; float: left; overflow-y: auto; padding: 10px; box-sizing: border-box; border-left: 1px solid #ccc; background: #f8f8f8; }
-        #controls { margin-bottom: 10px; }
-        .place-item { padding: 5px; border-bottom: 1px solid #ddd; cursor: pointer; }
-        .place-item:hover { background-color: #eee; }
-    </style>
+<meta charset="utf-8">
+<title>Map-based Story Adventure</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+
+<style>
+html, body { height:100%; margin:0; font-family:Arial; }
+#map { width:75%; height:100%; float:left; }
+#sidebar { width:25%; height:100%; float:left; overflow-y:auto; padding:10px; border-left:1px solid #ccc; background:#f8f8f8; }
+.place-item { padding:5px; border-bottom:1px solid #ddd; cursor:pointer; }
+.place-item:hover { background:#eee; }
+.place-item.rare { background:gold; font-weight:bold; }
+#score { font-weight:bold; margin-bottom:10px; }
+#story { margin-top:10px; font-size:14px; }
+#message { color:green; font-weight:bold; margin:5px 0; }
+</style>
 </head>
 <body>
-    <div id="map"></div>
-    <div id="sidebar">
-        <div id="controls">
-            <label>Category: </label>
-            <select id="categorySelect">
-                <option value="all">All</option>
-                <option value="restaurant">Restaurant</option>
-                <option value="cafe">Cafe</option>
-                <option value="park">Park</option>
-                <option value="landmark">Landmark</option>
-            </select>
-        </div>
-        <div id="placesList">
-            <p>Click on the map or change category to see nearby places.</p>
-        </div>
-    </div>
-
-    <script>
-        let apiKey = null;
-        let baseUrl = null;
-        let currentLat = 25.2048;
-        let currentLng = 55.2708;
-        let currentCategory = "all";
-        let markers = [];
-        let map = null;
-
-        // Initialize API values from pywebview
-        async function initApi() {
-            if(window.pywebview){
-                apiKey = await window.pywebview.api.get_api_key();
-                baseUrl = await window.pywebview.api.get_base_url();
-                currentLat = window.pywebview.api.current_lat;
-                currentLng = window.pywebview.api.current_lng;
-            }
-        }
-
-        // Fetch nearby places from Overture Maps
-        async function fetchPlaces(lat, lng, category){
-            if(!baseUrl || !apiKey) return [];
-            let url = `${baseUrl}?lat=${lat}&lng=${lng}&radius=5000&limit=50`;
-            if(category && category !== "all") url += `&category=${category}`;
-            try {
-                let resp = await fetch(url, { headers: { "x-api-key": apiKey }});
-                if(!resp.ok) throw new Error(resp.statusText);
-                let data = await resp.json();
-                return Array.isArray(data) ? data : data.features || [];
-            } catch(e){
-                alert("API Error: " + e);
-                return [];
-            }
-        }
-
-        // Clear all map markers
-        function clearMarkers(){
-            markers.forEach(m => map.removeLayer(m));
-            markers = [];
-        }
-
-        // Update markers and sidebar dynamically
-        function updateMarkersAndSidebar(places){
-            clearMarkers();
-            const listDiv = document.getElementById("placesList");
-            listDiv.innerHTML = "";
-
-            if(places.length === 0){
-                listDiv.innerHTML = "<p>No places found.</p>";
-            }
-
-            places.forEach((feat) => {
-                let lat, lng, name, cat;
-                if(feat.geometry){
-                    lat = feat.geometry.coordinates[1];
-                    lng = feat.geometry.coordinates[0];
-                    name = feat.properties?.name || "Unnamed";
-                    cat = feat.properties?.category || "Unknown";
-                } else {
-                    lat = feat.lat;
-                    lng = feat.lon;
-                    name = feat.name || "Unnamed";
-                    cat = feat.category || "Unknown";
-                }
-
-                // Marker color
-                let color = "blue";
-                if(cat === "restaurant") color="red";
-                else if(cat==="cafe") color="orange";
-                else if(cat==="park") color="green";
-                else if(cat==="landmark") color="purple";
-                else if(cat==="Unknown") color="gray";
-
-                // Add marker
-                let marker = L.marker([lat, lng], {
-                    icon: L.icon({
-                        iconUrl: `https://chart.googleapis.com/chart?chst=d_map_pin_letter&chld=%E2%80%A2|${color.replace('#','')}`,
-                        iconSize: [21, 34],
-                        iconAnchor: [10, 34]
-                    })
-                }).bindPopup(`<b>${name}</b><br>Category: ${cat}`).addTo(map);
-                markers.push(marker);
-
-                // Add to sidebar
-                const div = document.createElement("div");
-                div.className = "place-item";
-                div.textContent = `${name} (${cat})`;
-                div.onclick = () => { map.setView([lat, lng], 16); marker.openPopup(); };
-                listDiv.appendChild(div);
-            });
-        }
-
-        // Initialize map and attach event listeners
-        async function init() {
-            await initApi();
-
-            map = L.map('map').setView([currentLat, currentLng], 13);
-            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(map);
-
-            // Initial load
-            const places = await fetchPlaces(currentLat, currentLng, currentCategory);
-            updateMarkersAndSidebar(places);
-
-            // Category change
-            document.getElementById("categorySelect").addEventListener("change", async function(){
-                currentCategory = this.value;
-                const places = await fetchPlaces(currentLat, currentLng, currentCategory);
-                updateMarkersAndSidebar(places);
-            });
-
-            // Map click
-            map.on('click', async function(e){
-                currentLat = e.latlng.lat;
-                currentLng = e.latlng.lng;
-                const places = await fetchPlaces(currentLat, currentLng, currentCategory);
-                updateMarkersAndSidebar(places);
-            });
-        }
-
-        // Start everything
-        init();
-    </script>
+<div id="map"></div>
+<div id="sidebar">
+  <div id="score">Score: 0</div>
+  <div id="message"></div>
+  <div id="placesList"><p>Click places to unlock story fragments!</p></div>
+  <div id="story"><b>Story:</b><ul id="storyList"></ul></div>
+</div>
+<script src="map.js"></script>
 </body>
 </html>
