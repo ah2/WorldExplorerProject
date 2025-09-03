@@ -32,24 +32,6 @@ Scoreboard: Track player scores.
 
 Responsive Design: Clean layout with navigation bar, sidebar, and map.
 
-Project Structure
-WorldAdventure/
-├─ app.py                 # Main Flask application
-├─ world_adventure.db     # SQLite database (auto-generated)
-├─ .env                   # Environment variables (API key, Flask secret)
-├─ requirements.txt       # Python dependencies
-├─ static/
-│  ├─ map.js              # Map and player logic
-│  ├─ styles.css          # Styles for map, sidebar, nav, and forms
-│  ├─ player.svg          # Player icon for map
-├─ templates/
-│  ├─ index.html          # Main game page
-│  ├─ login.html          # Login page
-│  ├─ signup.html         # Signup page
-│  ├─ admin.html          # Admin panel page
-│  ├─ scoreboard.html     # Player scoreboard
-│  ├─ gallery.html        # Visited places gallery
-
 Installation
 
 Clone the repository:
@@ -66,7 +48,7 @@ source .venv/bin/activate  # Linux/Mac
 pip install -r requirements.txt
 
 
-Setup environment variables (.env file):
+Set up environment variables (.env file):
 
 OVERTURE_API_KEY=your_overture_api_key
 OVERTURE_API_URL=https://api.overturemaps.com/places
@@ -109,34 +91,3 @@ Admin account: admin/adminpass
 
 Test users: alice/alicepass, bob/bobpass
 
-Dependencies
-
-Python 3.9+
-
-Flask
-
-Requests
-
-python-dotenv
-
-Leaflet.js (via CDN in templates)
-
-Customizations
-
-Add more cities in index.html → <select> options.
-
-Modify map.js to change player speed or fetch radius.
-
-Replace player.svg with a custom icon.
-
-Add more bonus mechanics, rarity for places, or additional points system.
-
-Error Handling
-
-Gracefully logs database errors and API failures.
-
-Players can still explore even if marker API fails temporarily.
-
-License
-
-MIT License – feel free to modify and extend.
