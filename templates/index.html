@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>World Adventure</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+</head>
+<body>
+<nav>
+  <span>Welcome, {{user}}</span>
+  <a href="{{ url_for('logout') }}">Logout</a>
+  <a href="{{ url_for('admin') }}">Admin</a>
+  <a href="{{ url_for('scoreboard') }}">Scoreboard</a>
+  <a href="{{ url_for('gallery') }}">Gallery</a>
+</nav>
+
+<div id="city-select-screen">
+  <h2>Choose your city to start the adventure</h2>
+  <select id="city-select">
+    <option value="Dubai,25.276987,55.296249">Dubai</option>
+    <option value="Paris,48.8566,2.3522">Paris</option>
+    <option value="New York,40.7128,-74.0060">New York</option>
+    <option value="Tokyo,35.6895,139.6917">Tokyo</option>
+  </select>
+  <button id="start-btn">Start Adventure</button>
+</div>
+
+<div id="app" style="display:none;">
+    <div id="map-container"><div id="map"></div></div>
+    <div id="sidebar">
+        <h3>Nearby Places</h3>
+        <div id="places-list"></div>
+    </div>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="{{ url_for('static', filename='map.js') }}"></script>
+</body>
+</html>

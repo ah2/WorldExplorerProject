@@ -1,1 +1,4 @@
 /.env
+/game.db
+/logs/app.log
+/world_adventure.db

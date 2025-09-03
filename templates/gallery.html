@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Visited Gallery</title>
+<link rel="stylesheet" href="styles.css"/>
+</head>
+<body>
+<nav>
+  <a href="index.html">Home</a>
+  <a href="/admin">Admin</a>
+  <a href="/scoreboard">Scoreboard</a>
+  <a href="/gallery">Gallery</a>
+</nav>
+<h2>Visited Places Gallery</h2>
+<ul id="gallery-list"></ul>
+
+<script>
+function loadGallery(){
+    fetch("/api/score").then(r=>r.json()).then(data=>{
+        const gallery = document.getElementById("gallery-list");
+        gallery.innerHTML="";
+        data.visited.forEach(p=>{
+            const li=document.createElement("li");
+            li.textContent=`${p.name} (${p.category})`;
+            const btn=document.createElement("button");
+            btn.textContent="Remove";
+            btn.onclick=()=>removePlace(p.name,p.lat,p.lng);
+            li.appendChild(btn);
+            gallery.appendChild(li);
+        });
+    });
+}
+
+function removePlace(name,lat,lng){
+    fetch(`/api/remove_place?name=${encodeURIComponent(name)}&lat=${lat}&lng=${lng}`)
+    .then(r=>r.json()).then(res=>{
+        if(res.success) loadGallery();
+    });
+}
+
+loadGallery();
+</script>
+</body>
+</html>
