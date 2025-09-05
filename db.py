@@ -1,83 +1,96 @@
 import sqlite3
 import os
+import time
 from werkzeug.security import generate_password_hash
+from flask import current_app
 
-DB_FILE = "game.db"
+DB_FILE = "world_adventure.db"
+
 
 def get_db():
-    conn = sqlite3.connect(DB_FILE)
-    conn.row_factory = sqlite3.Row
-    return conn
+    """Get a DB connection with row factory."""
+    try:
+        conn = sqlite3.connect(DB_FILE)
+        conn.row_factory = sqlite3.Row
+        return conn
+    except sqlite3.Error as e:
+        if current_app:
+            current_app.logger.error("DB connection failed: %s", e)
+        else:
+            print(f"DB connection failed: {e}")
+        return None
+
 
 def init_db():
-    if not os.path.exists(DB_FILE):
-        conn = get_db()
-        cur = conn.cursor()
+    """Initialize the database with required tables and seed data."""
+    create_new = not os.path.exists(DB_FILE)
+    conn = get_db()
+    if conn is None:
+        return
+    cur = conn.cursor()
 
-        cur.execute("""
-        CREATE TABLE player (
+    # API logs (for debugging/replay)
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS api_logs (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
-            lat REAL,
-            lng REAL,
+            endpoint TEXT,
+            params TEXT,
+            response TEXT,
+            timestamp INTEGER
+        )
+    """)
+
+    # Users table
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS users (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            username TEXT UNIQUE,
+            password TEXT
+        )
+    """)
+
+    # Player table (one per user ideally)
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS player (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            username TEXT,
+            lat REAL DEFAULT 0,
+            lng REAL DEFAULT 0,
             score INTEGER DEFAULT 0
         )
-        """)
+    """)
 
-        cur.execute("""
-        CREATE TABLE visited_places (
+    # Visited places table
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS visited_places (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
+            username TEXT,
             name TEXT,
             category TEXT,
             lat REAL,
             lng REAL
         )
-        """)
+    """)
 
-        cur.execute("""
-        CREATE TABLE users (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            username TEXT UNIQUE,
-            password TEXT
+    # Seed default data only if fresh DB
+    if create_new:
+        # Insert admin (hashed password)
+        admin_pass = generate_password_hash("admin123")
+        cur.execute("INSERT INTO users (username,password) VALUES (?,?)", ("admin", admin_pass))
+
+        # Test users
+        test_users = [
+            ("john", generate_password_hash("johnpass")),
+            ("alice", generate_password_hash("alicepass")),
+            ("bob", generate_password_hash("bobpass")),
+        ]
+        cur.executemany("INSERT INTO users (username,password) VALUES (?,?)", test_users)
+
+        # Default player linked to admin
+        cur.execute(
+            "INSERT INTO player (username, lat, lng, score) VALUES (?,?,?,?)",
+            ("admin", 25.276987, 55.296249, 0)
         )
-        """)
 
-        # Visited places table
-        cur.execute("""CREATE TABLE IF NOT EXISTS visited_places (
-                        name TEXT, category TEXT, lat REAL, lng REAL
-                    )""")
-
-        # Player table
-        cur.execute("""CREATE TABLE IF NOT EXISTS player (
-                        id INTEGER PRIMARY KEY, username TEXT, lat REAL, lng REAL, score INTEGER
-                    )""")
-
-        # Users table
-        cur.execute("""CREATE TABLE IF NOT EXISTS users (
-                        id INTEGER PRIMARY KEY,
-                        username TEXT UNIQUE,
-                        password TEXT
-                    )""")
-
-        # Insert default player if empty
-        cur.execute("SELECT COUNT(*) FROM player")
-        if cur.fetchone()[0] == 0:
-            cur.execute("INSERT INTO player(username, lat, lng, score) VALUES (?, ?, ?, ?)",
-                        ("default", 0, 0, 0))
-
-        # Initialize default player
-        cur.execute("INSERT INTO player (lat,lng,score) VALUES (?,?,?)",
-                    (25.276987,55.296249,0))
-
-        # Default admin
-        hashed = generate_password_hash("admin123")
-        cur.execute("INSERT INTO users (username,password) VALUES (?,?)", ("admin",hashed))
-
-        # Create admin and test users
-        cur.execute("SELECT COUNT(*) FROM users")
-        if cur.fetchone()[0] == 0:
-            cur.execute("INSERT INTO users(username,password) VALUES (?,?)", ("john", "johnpass"))
-            cur.execute("INSERT INTO users(username,password) VALUES (?,?)", ("alice", "alicepass"))
-            cur.execute("INSERT INTO users(username,password) VALUES (?,?)", ("bob", "bobpass"))
-
-        conn.commit()
-        conn.close()
+    conn.commit()
+    conn.close()
