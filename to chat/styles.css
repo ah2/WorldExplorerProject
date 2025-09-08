@@ -1,0 +1,193 @@
+/* Reset and full viewport */
+html, body {
+    margin: 0;
+    padding: 0;
+    height: 100%;
+    width: 100%;
+    font-family: Arial, sans-serif;
+    background: #eef2f3;
+}
+
+/* Navigation bar */
+nav {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    background-color: #333;
+    color: white;
+    padding: 8px 16px;
+}
+nav a {
+    color: white;
+    text-decoration: none;
+    margin-left: 16px;
+    font-weight: bold;
+}
+nav a:hover {
+    text-decoration: underline;
+}
+
+/* City selection screen */
+#city-select-screen {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100vh;
+    background: linear-gradient(to bottom right, #a0c4ff, #bdb2ff);
+    color: #333;
+}
+#city-select-screen select {
+    padding: 8px;
+    font-size: 16px;
+    margin-top: 12px;
+}
+#city-select-screen button {
+    margin-top: 12px;
+    padding: 8px 16px;
+    font-size: 16px;
+    background-color: #06d6a0;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    color: white;
+}
+#city-select-screen button:hover {
+    background-color: #05c188;
+}
+
+/* App layout */
+#app {
+    display: flex;
+    height: 100vh;
+    width: 100%;
+}
+
+/* Map container */
+#map-container {
+    /*flex: 1;*/
+    height: 80vh;   /* full screen */
+    width: 100%;
+    border: 4px solid #333;
+    margin: 8px;
+    position: relative;
+}
+#map {
+    height: 100%;
+    width: 100%;
+    border-radius: 4px;
+}
+
+/* Sidebar */
+#sidebar {
+    width: 300px;
+    background-color: #f8f9fa;
+    padding: 10px;
+    overflow-y: auto;
+    border-left: 2px solid #333;
+}
+#sidebar h3 {
+    text-align: center;
+    margin-top: 0;
+}
+#places-list .place {
+    padding: 6px 8px;
+    margin: 4px 0;
+    background-color: #fff;
+    border-radius: 4px;
+    cursor: pointer;
+    border: 1px solid #ddd;
+}
+#places-list .place:hover {
+    background-color: #cde9ff;
+}
+
+/* Tables for admin panel*/
+table {
+    width: 90%;
+    margin: 8px auto;
+    border-collapse: collapse;
+}
+th, td {
+    border: 1px solid #333;
+    padding: 6px 12px;
+    text-align: left;
+}
+th {
+    background-color: #333;
+    color: white;
+}
+
+/* Forms */
+form {
+    margin: 16px auto;
+    width: 300px;
+    display: flex;
+    flex-direction: column;
+}
+form label {
+    margin: 6px 0;
+}
+form input {
+    padding: 6px;
+    margin: 4px 0;
+    font-size: 14px;
+}
+form button {
+    padding: 8px;
+    margin-top: 12px;
+    background-color: #06d6a0;
+    border: none;
+    border-radius: 4px;
+    color: white;
+    font-weight: bold;
+    cursor: pointer;
+}
+form button:hover {
+    background-color: #05c188;
+}
+
+/* Admin logs */
+pre {
+    max-height: 300px;
+    overflow-y: auto;
+    background-color: #222;
+    color: #0f0;
+    padding: 8px;
+    border-radius: 4px;
+    font-size: 12px;
+}
+
+/* Footer / links */
+a {
+    color: #06d6a0;
+}
+a:hover {
+    color: #05c188;
+}
+
+.suggestions {
+  border: 1px solid #ccc;
+  max-height: 150px;
+  overflow-y: auto;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  position: absolute;
+  background: white;
+  width: 220px;
+  z-index: 1000;
+}
+.suggestions li {
+  padding: 8px;
+  cursor: pointer;
+}
+.suggestions li:hover {
+  background: #eee;
+}
+
+#map {
+  width: 100%;
+  height: 100vh;
+  touch-action: none; /* allows custom swipe handling */
+}

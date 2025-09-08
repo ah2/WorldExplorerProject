@@ -187,6 +187,7 @@ document.addEventListener("DOMContentLoaded", function () {
     const btn = document.getElementById("start-btn");
     const errorMsg = document.getElementById("error-msg");
     let selectedCity = null;
+
     if (btn) {
         // Start button calls backend
         btn.addEventListener("click", async () => {
@@ -200,7 +201,7 @@ document.addEventListener("DOMContentLoaded", function () {
             const data = await res.json();
             if (data.lat && data.lng) {
                 // update map here
-                initMap(data.lat, data.lng); // reinit map at new city}
+                initMap(selectedCity.lat, selectedCity.lng); // reinit map at new city}
 
                 // Preload surrounding tiles (current tile + neighbors)
                 preloadSurroundingTiles(selectedCity.lat, selectedCity.lng);
@@ -287,7 +288,7 @@ document.addEventListener("DOMContentLoaded", function () {
             for (let dy = -1; dy <= 1; dy++) {
                 const tileLat = (centerY + dy) * TILE_SIZE;
                 const tileLng = (centerX + dx) * TILE_SIZE;
-                loadVisibleTile(tileLat, tileLng);
+                //loadVisibleTile(tileLat, tileLng);
             }
         }
     }
