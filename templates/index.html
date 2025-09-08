@@ -23,17 +23,21 @@
 
 <div id="city-screen">
   <h2>Choose your city to start the adventure</h2>
-<select id="city-select">
-    <option value="">-- Select a city --</option>
-    <option value="dubai">Dubai</option>
-    <option value="paris">Paris</option>
-    <option value="newyork">New York</option>
-</select>
-  <button id="start-btn">Start Adventure</button>
+
+
+    <label for="city-select">Choose a city:</label><br>
+    <input id="city-select" placeholder="Type a city..." autocomplete="off">
+    <ul id="suggestions" class="suggestions"></ul>
+    <p id="error-msg" style="color:red; display:fles;"></p>
+
+
+  <button id="start-btn" disabled>Start Adventure</button>
 </div>
 
-<div id="app" style="display:none;">
-    <div id="map-container"><div id="map"></div></div>
+<div id="app"  style="display:block;">
+    <div id="map-container">
+        <div id="map"></div>
+    </div>
     <div id="sidebar">
         <h3>Nearby Places</h3>
         <div id="places-list"></div>
