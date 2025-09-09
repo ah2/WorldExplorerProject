@@ -2,7 +2,7 @@ import os
 import json
 import time
 import requests
-from flask import Flask, render_template, request, jsonify, redirect, url_for, session, flash, logging
+from flask import Flask, render_template, request, jsonify, redirect, send_from_directory, url_for, session, flash, logging
 from dotenv import load_dotenv
 from werkzeug.security import check_password_hash
 
@@ -140,12 +140,28 @@ def start():
 def api_places():
     """Proxy call to Overture API using bounding box, save JSON in DB, return to frontend."""
     bbox = request.args.get("bbox")  # expected format: minLon,minLat,maxLon,maxLat
+    lat = request.args.get("lat")
+    lng = request.args.get("lng")
     limit = request.args.get("limit", 50)
 
-    coords = [round(float(x), 6) for x in bbox.split(",")]
 
-    print(f"/places got: {bbox}")
-    print (f"/places sent: {",".join(map(str, coords))}")
+    #coords = [round(float(x), 5) for x in bbox.split(",")]
+
+    if bbox:
+        # bbox = "minLon,minLat,maxLon,maxLat"
+        min_lon, min_lat, max_lon, max_lat = map(float, bbox.split(","))
+        center_lat = round((min_lat + max_lat) / 2, 6)
+        center_lon = round((min_lon + max_lon) / 2, 6)
+        # approximate radius in meters from bbox size (Haversine would be better)
+        lat_radius = (max_lat - min_lat) * 111_000 / 2
+        lon_radius = (max_lon - min_lon) * 111_000 / 2
+        radius = int(max(lat_radius, lon_radius))
+        params = {"lat": center_lat, "lng": center_lon, "radius": radius, "limit": limit}
+    elif lat and lng:
+        params = {"lat": lat, "lng": lng, "radius": radius, "limit": limit}
+
+        #params = {"lat": center_lat, "lng": center_lon, "radius": radius, "limit": limit}
+    
 
     if not bbox:
         return jsonify({"error": "Missing bbox"}), 400
@@ -153,7 +169,7 @@ def api_places():
     #centerLat = ((parseFloat(minLat) + parseFloat(maxLat)) / 2).toFixed(6)
     #centerLon = ((parseFloat(minLon) + parseFloat(maxLon)) / 2).toFixed(6)
 
-    params = {"limit": limit, "bbox": ",".join(map(str, coords))}
+    #params = {"limit": limit, "bbox": ",".join(map(str, coords))}
 
 
     try:
@@ -164,19 +180,20 @@ def api_places():
             timeout=10
         )
         data = r.json()
-        print (json.dumps(data))
+
+        #print(int(time.time()))
+        #print("params: " + json.dumps(params))
+        #print ("data: " + json.dumps(data))
         # Save raw JSON into api_logs
-        conn = get_db()
-        if conn:
-            cur = conn.cursor()
+        db_conn = get_db()
+        if db_conn:
+            cur = db_conn.cursor()
             cur.execute(
                 "INSERT INTO api_logs(endpoint, params, response, timestamp) VALUES (?,?,?,?)",
                 ("places", json.dumps(params), json.dumps(data), int(time.time()))
             )
-            conn.commit()
-            conn.close()
-
-            app.logger.info(f"Fetched bbox {bbox} at {int(time.time())}")
+            db_conn.commit()
+            db_conn.close()
 
         return jsonify(data)
 
@@ -216,6 +233,12 @@ def admin():
 @app.route("/.well-known/appspecific/com.chrome.devtools.json")
 def chrome_devtools():
     return {"status": "ok"}
+
+@app.route('/favicon.ico')
+def favicon():
+    return send_from_directory(os.path.join(app.root_path, 'static'),
+                                'favicon.ico',
+                                mimetype='image/vnd.microsoft.icon')
 
 
 # -----------------------------

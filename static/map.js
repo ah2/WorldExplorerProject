@@ -111,10 +111,10 @@ function getTileKey(lat, lng) {
 function getTileBounds(lat, lng) {
     const x = Math.floor(lng / TILE_SIZE);
     const y = Math.floor(lat / TILE_SIZE);
-    const minLat = (lat - TILE_SIZE).toFixed(6);
-    const maxLat = (lat + TILE_SIZE).toFixed(6);
-    const minLon = (lng - TILE_SIZE).toFixed(6);
-    const maxLon = (lng + TILE_SIZE).toFixed(6);
+    const minLat = (lat - TILE_SIZE).toFixed(5);
+    const maxLat = (lat + TILE_SIZE).toFixed(5);
+    const minLon = (lng - TILE_SIZE).toFixed(5);
+    const maxLon = (lng + TILE_SIZE).toFixed(5);
     return [minLon, minLat, maxLon, maxLat];
 }
 
