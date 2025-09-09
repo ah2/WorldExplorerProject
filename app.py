@@ -142,10 +142,19 @@ def api_places():
     bbox = request.args.get("bbox")  # expected format: minLon,minLat,maxLon,maxLat
     limit = request.args.get("limit", 50)
 
+    coords = [round(float(x), 6) for x in bbox.split(",")]
+
+    print(f"/places got: {bbox}")
+    print (f"/places sent: {",".join(map(str, coords))}")
+
     if not bbox:
         return jsonify({"error": "Missing bbox"}), 400
 
-    params = {"limit": limit, "bbox": bbox}
+    #centerLat = ((parseFloat(minLat) + parseFloat(maxLat)) / 2).toFixed(6)
+    #centerLon = ((parseFloat(minLon) + parseFloat(maxLon)) / 2).toFixed(6)
+
+    params = {"limit": limit, "bbox": ",".join(map(str, coords))}
+
 
     try:
         r = requests.get(

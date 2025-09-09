@@ -111,10 +111,10 @@ function getTileKey(lat, lng) {
 function getTileBounds(lat, lng) {
     const x = Math.floor(lng / TILE_SIZE);
     const y = Math.floor(lat / TILE_SIZE);
-    const minLon = x * TILE_SIZE;
-    const minLat = y * TILE_SIZE;
-    const maxLon = minLon + TILE_SIZE;
-    const maxLat = minLat + TILE_SIZE;
+    const minLat = (lat - TILE_SIZE).toFixed(6);
+    const maxLat = (lat + TILE_SIZE).toFixed(6);
+    const minLon = (lng - TILE_SIZE).toFixed(6);
+    const maxLon = (lng + TILE_SIZE).toFixed(6);
     return [minLon, minLat, maxLon, maxLat];
 }
 
@@ -210,7 +210,7 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
 
-    const input = document.getElementById("city-select");
+    const input = document.getElementById("city-input");
     const suggestionsEl = document.getElementById("suggestions");
 
     // On input, fetch & show city list
@@ -222,7 +222,7 @@ document.addEventListener("DOMContentLoaded", function () {
         clearTimeout(debounceTimer);
         debounceTimer = setTimeout(async () => {
             const results = await searchCities(e.target.value);
-            renderSuggestions(results);
+            renderSuggestions(results, input);
         }, 300);
     });
 
@@ -260,7 +260,7 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
     // Render suggestions list
-    function renderSuggestions(cities) {
+    function renderSuggestions(cities, input) {
         suggestionsEl.innerHTML = "";
         cities.forEach(city => {
             const li = document.createElement("li");
@@ -288,7 +288,7 @@ document.addEventListener("DOMContentLoaded", function () {
             for (let dy = -1; dy <= 1; dy++) {
                 const tileLat = (centerY + dy) * TILE_SIZE;
                 const tileLng = (centerX + dx) * TILE_SIZE;
-                //loadVisibleTile(tileLat, tileLng);
+                loadVisibleTiles(tileLat, tileLng);
             }
         }
     }
