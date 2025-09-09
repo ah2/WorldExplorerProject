@@ -40,6 +40,20 @@ function initMap(lat = 0, lng = 0) {
     // Keyboard controls
     document.addEventListener("keydown", handleMove);
 
+        // Call once when map initializes
+    map.on("load", () => {
+        loadVisibleTiles();
+    });
+
+    let tileLoadTimer;
+    // Call whenever user pans or zooms
+    map.on("moveend", () => {
+        clearTimeout(tileLoadTimer);
+        tileLoadTimer = setTimeout(() => {
+            loadVisibleTiles();
+        }, 300); // wait 300ms after movement stops
+    });
+
     // Initial load of markers
     //loadVisibleTile();
 }
@@ -93,8 +107,13 @@ function handleSwipe() {
 
 // Update player position and check discoveries
 function updatePlayer() {
-    playerMarker.setLatLng([playerPos.lat, playerPos.lng]);
-    map.panTo([playerPos.lat, playerPos.lng]); // always follow the player
+    playerMarker.setLatLng([playerPos.lat, playerPos.lng],{ animate: true, duration: 0.25 });
+        // Smoothly pan map to follow player
+    map.panTo([playerPos.lat, playerPos.lng], {
+        animate: true,
+        duration: 0.25,   // seconds
+        easeLinearity: 0.25
+    });
     checkDiscoveries();
     //loadVisibleTile();
 }
@@ -130,28 +149,53 @@ async function loadVisibleTiles() {
         const res = await fetch(`/api/places?bbox=${bbox}`);
         const data = await res.json();
 
-        if (data && data.features) {
-            data.features.forEach(f => {
-                const lat = f.geometry.coordinates[1];
-                const lng = f.geometry.coordinates[0];
-                const place = {
-                    name: f.properties?.name || "Unknown",
-                    coords: [lat, lng],
-                    discovered: false
-                };
-
-                discoveredPlaces.push(place);
-
-                // Show marker immediately
-                const marker = L.marker(place.coords).addTo(map);
-                marker.bindPopup(`<b>${place.name}</b>`);
-            });
-        }
+        renderMarkers(data);
     } catch (err) {
         console.error("Error loading tile:", err);
     }
 }
 
+
+
+function renderMarkers(data) {
+    // Clear old markers & sidebar
+    if (window.currentMarkers) {
+        window.currentMarkers.forEach(m => map.removeLayer(m));
+    }
+    window.currentMarkers = [];
+    document.getElementById("places-list").innerHTML = "";
+
+    // Make sure we loop correctly (some APIs return {features: []})
+    const places = Array.isArray(data) ? data : (data.features || []);
+
+    places.forEach(place => {
+        const coords = place.geometry?.coordinates;
+        const props = place.properties || {};
+        if (!coords || coords.length < 2) return;
+
+        const [lon, lat] = coords;
+        const name = props.names?.primary || props.ext_name || "Unnamed Place";
+
+        // Create marker
+        const marker = L.marker([lat, lon])
+            .addTo(map)
+            .bindPopup(`<b>${name}</b><br>${props.categories?.primary || "Unknown"}`);
+        window.currentMarkers.push(marker);
+
+        // Add sidebar entry
+        const div = document.createElement("div");
+        div.className = "place-item";
+        div.innerHTML = `
+            <strong>${name}</strong><br>
+            <small>${props.addresses?.[0]?.freeform || ""}</small>
+        `;
+        div.addEventListener("click", () => {
+            map.setView([lat, lon], 16);
+            marker.openPopup();
+        });
+        document.getElementById("places-list").appendChild(div);
+    });
+}
 
 // Check if player is near a place
 function checkDiscoveries() {
@@ -239,6 +283,7 @@ document.addEventListener("DOMContentLoaded", function () {
         touchEndY = e.changedTouches[0].screenY;
         handleSwipe();
     });
+
 
     let cities = [];
 
