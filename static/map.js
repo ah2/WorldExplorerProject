@@ -3,6 +3,7 @@
 
 let map;
 let playerMarker;
+let currentMarkers;
 let playerPos = { lat: 0, lng: 0 };
 let discoveredPlaces = [];
 const MOVE_STEP = 0.002; // smaller step = slower movement
@@ -115,7 +116,7 @@ function updatePlayer() {
         easeLinearity: 0.25
     });
     checkDiscoveries();
-    //loadVisibleTile();
+    loadVisibleTiles();
 }
 
 // ----------------------------
@@ -158,11 +159,10 @@ async function loadVisibleTiles() {
 
 
 function renderMarkers(data) {
-    // Clear old markers & sidebar
-    if (window.currentMarkers) {
-        window.currentMarkers.forEach(m => map.removeLayer(m));
-    }
-    window.currentMarkers = [];
+    // keep markers in a dictionary by place ID
+if (!window.currentMarkers) {
+    window.currentMarkers = {};
+}
     document.getElementById("places-list").innerHTML = "";
 
     // Make sure we loop correctly (some APIs return {features: []})
@@ -175,12 +175,17 @@ function renderMarkers(data) {
 
         const [lon, lat] = coords;
         const name = props.names?.primary || props.ext_name || "Unnamed Place";
+        const id = place.id || props.id;  // use stable id if available
+        
+        if (!id) return;
+        // Skip if we already rendered this place
+        if (window.currentMarkers[id]) return;
 
         // Create marker
         const marker = L.marker([lat, lon])
             .addTo(map)
             .bindPopup(`<b>${name}</b><br>${props.categories?.primary || "Unknown"}`);
-        window.currentMarkers.push(marker);
+        window.currentMarkers[id] = marker;
 
         // Add sidebar entry
         const div = document.createElement("div");
@@ -231,6 +236,16 @@ document.addEventListener("DOMContentLoaded", function () {
     const btn = document.getElementById("start-btn");
     const errorMsg = document.getElementById("error-msg");
     let selectedCity = null;
+
+    const userData = document.getElementById("user-data").dataset.user;
+    const displayEl = document.getElementById("user-display");
+
+    if (userData && userData.trim() !== "") {
+        displayEl.textContent = `Logged in as: ${userData}`;
+    } else {
+        displayEl.textContent = "Logged in as: Guest";
+    }
+
 
     if (btn) {
         // Start button calls backend
@@ -299,8 +314,8 @@ document.addEventListener("DOMContentLoaded", function () {
     // Fetch city candidates from Nominatim
     async function searchCities(query) {
         if (!query || query.length < 2) return [];
-        const url = `https://nominatim.openstreetmap.org/search?city=${encodeURIComponent(query)}&format=json&limit=5`;
-        const res = await fetch(url, { headers: { "User-Agent": "YourAppName" } });
+        //const url = `https://nominatim.openstreetmap.org/search?city=${encodeURIComponent(query)}&format=json&limit=5`;
+        const res = await fetch(`/api/search?q=${encodeURIComponent(query)}`);
         return res.json();
     }
 

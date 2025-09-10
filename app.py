@@ -50,6 +50,7 @@ def login():
             session["username"] = username
             conn.close()
 
+            app.logger.info(f"logged in as: {session["username"]}")
             return render_template("index.html")
         else:
             flash("Invalid username or password.")
@@ -60,6 +61,7 @@ def login():
 
 @app.route("/logout")
 def logout():
+    app.logger.info(f"{session["username"] } logged out")
     session["username"] = "Guest"
     return redirect(url_for("home"))
 
@@ -200,6 +202,26 @@ def api_places():
     except Exception as e:
         app.logger.error(f"Error fetching places: {e}")
         return jsonify({"error": "Failed to fetch places"}), 500
+
+@app.route("/api/search")
+def api_search():
+    """Proxy to Nominatim to avoid CORS issues"""
+    query = request.args.get("q")
+    if not query:
+        return jsonify({"error": "Missing query"}), 400
+
+    url = "https://nominatim.openstreetmap.org/search"
+    params = {
+        "q": query,
+        "format": "json",
+        "limit": 5
+    }
+
+    try:
+        r = requests.get(url, params=params, headers={"User-Agent": "YourApp/1.0"})
+        return jsonify(r.json())
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 
 @app.route("/")

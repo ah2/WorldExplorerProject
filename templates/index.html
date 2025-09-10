@@ -8,10 +8,13 @@
 </head>
 <body>
 <nav>
-  <span style="margin-right:auto; color:white;">
-    Logged in as: {{ session['user'] if 'user' in session else 'Guest' }}
-  </span>
-  {% if session['user'] != 'Guest' %}
+  <span id="user-display" style="margin-right:auto; color:white;"></span>
+
+  
+<!-- inject user into a data attribute -->
+<span id="user-data" data-user="{{ session['user'] if 'user' in session else '' }}" hidden></span>
+
+`{% if session['user'] != 'Guest' %}
     <a href="{{ url_for('logout') }}">Logout</a>
   {% else %}
     <a href="{{ url_for('login') }}">Login</a>
