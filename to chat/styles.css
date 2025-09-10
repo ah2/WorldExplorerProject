@@ -60,27 +60,31 @@ nav a:hover {
 #app {
     display: flex;
     height: 100vh;
+    width: 100%;
 }
 
 /* Map container */
 #map-container {
-    flex: 3;
+    /*flex: 1;*/
+    height: 80vh;   /* full screen */
+    width: 100%;
+    border: 4px solid #333;
+    margin: 8px;
     position: relative;
 }
 #map {
     height: 100%;
     width: 100%;
-    border-radius: 2px;
+    border-radius: 4px;
 }
 
 /* Sidebar */
 #sidebar {
-    flex : 1;
+    width: 300px;
     background-color: #f8f9fa;
     padding: 10px;
     overflow-y: auto;
-    border-left: 1px solid #333;
-    z-index: 1000; /* ensure it sits above map tiles */
+    border-left: 2px solid #333;
 }
 #sidebar h3 {
     text-align: center;

@@ -8,13 +8,10 @@
 </head>
 <body>
 <nav>
-  <span id="user-display" style="margin-right:auto; color:white;"></span>
-
-  
-<!-- inject user into a data attribute -->
-<span id="user-data" data-user="{{ session['user'] if 'user' in session else '' }}" hidden></span>
-
-`{% if session['user'] != 'Guest' %}
+  <span style="margin-right:auto; color:white;">
+    Logged in as: {{ session['user'] if 'user' in session else 'Guest' }}
+  </span>
+  {% if session['user'] != 'Guest' %}
     <a href="{{ url_for('logout') }}">Logout</a>
   {% else %}
     <a href="{{ url_for('login') }}">Login</a>
@@ -27,17 +24,17 @@
 <div id="city-screen">
   <h2>Choose your city to start the adventure</h2>
 
-  <label for="city-input">Choose a city:</label><br>
-  <input id="city-input" type="text" placeholder="Type a city..." autocomplete="off">
 
-  <!-- Suggestion list for JS to fill -->
-  <ul id="suggestions" class="suggestions"></ul>
+    <label for="city-select">Choose a city:</label><br>
+    <input id="city-select" placeholder="Type a city..." autocomplete="off">
+    <ul id="suggestions" class="suggestions"></ul>
+    <p id="error-msg" style="color:red; display:fles;"></p>
 
-  <button id="start-btn" disabled>Start Adventure</button>
+
+  <button id="start-btn">Start Adventure</button>
 </div>
 
-
-<div id="app" style="display:block;">
+<div id="app"  style="display:block;">
     <div id="map-container">
         <div id="map"></div>
     </div>

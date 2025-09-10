@@ -1,3 +1,8 @@
 pywebview~=6.0
 dotenv~=0.9.9
 python-dotenv~=1.1.1
+requests
+#sqlite3
+flask
+dotenv
+gunicorn
