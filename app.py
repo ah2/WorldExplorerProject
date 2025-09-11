@@ -158,9 +158,9 @@ def api_places():
         lat_radius = (max_lat - min_lat) * 111_000 / 2
         lon_radius = (max_lon - min_lon) * 111_000 / 2
         radius = int(max(lat_radius, lon_radius))
-        params = {"lat": center_lat, "lng": center_lon, "radius": radius, "limit": limit}
+        params = {"lat": center_lat, "lng": center_lon, "radius": radius } #"limit": limit
     elif lat and lng:
-        params = {"lat": lat, "lng": lng, "radius": radius, "limit": limit}
+        params = {"lat": lat, "lng": lng, "radius": radius } #"limit": limit
 
         #params = {"lat": center_lat, "lng": center_lon, "radius": radius, "limit": limit}
     
