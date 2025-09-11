@@ -1,8 +1,9 @@
-World Adventure – Map-Based Game
+# World Adventure
+Map-Based Game using [overturemaps api](https://www.overturemapsapi.com/)
 
-A web-based adventure game where players explore real-world locations using the Overture Maps API, earn points, and track visited places. Includes a login system, admin panel, and dynamic interactive map.
+A web-based adventure game where players explore real-world locations using Overture Maps API, 
 
-Installation:
+#Installation:
 
 Create a virtual environment and install dependencies:
 ```
@@ -19,12 +20,13 @@ Open browser: Navigate to ```http://127.0.0.1:5000/```
 
 Input a city, and start exploring!
 
-Use WASD or arrow keys to move the player.
+Use the WASD keys or arrow keys to move the player.
 
 Click on markers to earn bonus points.
 
 Check the sidebar for nearby places.
 
-Admin account: admin/adminpass
-Test users: alice/alicepass, bob/bobpass
+built-in website accounts:
+Admin account: ```admin:adminpass```
+Test users: ```alice:alicepass, bob:bobpass```
 
