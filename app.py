@@ -227,6 +227,7 @@ def api_search():
 
 @app.route("/")
 def home():
+    print(str(session))
     if 'username' not in session:
         session['username'] = "Guest"
 
