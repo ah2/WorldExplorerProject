@@ -116,6 +116,7 @@ def gallery():
 
 @app.route("/start", methods=["POST"])
 def start():
+    app.logger.info(f"logged in as: {session["username"]}")
     data = request.get_json()
 
     # Expecting { "name": "...", "lat": ..., "lng": ... }

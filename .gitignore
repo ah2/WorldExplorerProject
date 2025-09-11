@@ -1,4 +1,7 @@
 /.env
-/game.db
-/logs/app.log
+/logs
 /world_adventure.db
+/.idea
+/.venv
+/.idea
+/__pycache__
