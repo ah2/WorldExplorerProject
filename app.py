@@ -269,4 +269,8 @@ def favicon():
 # Run
 # -----------------------------
 if __name__ == "__main__":
-    app.run(debug=True)
+
+    if (API_KEY != 'DEMO-API-KEY'):
+        app.run(debug=True)
+    print('please update .env with an api key')
+    print('exiting....')
