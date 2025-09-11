@@ -28,7 +28,7 @@ init_db()
 @app.route("/login", methods=["GET", "POST"])
 def login():
     if request.method == "POST":
-        username = request.form.get("username")
+        username = request.form.get('username')
         password = request.form.get("password")
 
         conn = get_db()
@@ -47,10 +47,11 @@ def login():
             return redirect(url_for("login"))
 
         if user and check_password_hash(user["password"], password):
-            session["username"] = username
+            session['username'] = username
             conn.close()
 
-            app.logger.info(f"logged in as: {session["username"]}")
+            #app.logger.info( f"logged in as: { session['username'] }" )
+
             return render_template("index.html")
         else:
             flash("Invalid username or password.")
@@ -61,15 +62,15 @@ def login():
 
 @app.route("/logout")
 def logout():
-    app.logger.info(f"{session["username"] } logged out")
-    session["username"] = "Guest"
+    app.logger.info( f"{session ['username'] } logged out")
+    session['username'] = "Guest"
     return redirect(url_for("home"))
 
 
 @app.route("/signup", methods=["GET", "POST"])
 def signup():
     if request.method == "POST":
-        username = request.form.get("username")
+        username = request.form.get('username')
         password = request.form.get("password")
 
         if not username or not password:
@@ -116,7 +117,6 @@ def gallery():
 
 @app.route("/start", methods=["POST"])
 def start():
-    app.logger.info(f"logged in as: {session["username"]}")
     data = request.get_json()
 
     # Expecting { "name": "...", "lat": ..., "lng": ... }
@@ -227,16 +227,16 @@ def api_search():
 
 @app.route("/")
 def home():
-    if "username" not in session:
-        session["username"] = "Guest"
+    if 'username' not in session:
+        session['username'] = "Guest"
 
-    app.logger.info(f"logged in as: {session["username"]}")
-    return render_template("index.html", user=session["username"])
+    app.logger.info(f"logged in as: {session['username']}")
+    return render_template("index.html", user=session['username'])
 
 
 @app.route("/admin")
 def admin():
-    if "username" not in session or session["username"] != "admin":
+    if 'username' not in session or session['username'] != "admin":
         flash("Access denied.")
         return redirect(url_for("index"))
 
