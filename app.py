@@ -7,7 +7,7 @@ from dotenv import load_dotenv
 from werkzeug.security import check_password_hash
 
 # Import our DB helper
-from db import get_db, init_db
+from db import *
 
 # Load environment variables
 load_dotenv()
@@ -17,6 +17,7 @@ OVERTURE_URL = os.getenv("OVERTURE_API_URL", "https://api.overturemaps.com")
 # Flask setup
 app = Flask(__name__)
 app.secret_key = os.getenv("FLASK_SECRET", "dev_secret_key")
+debug_mode = os.getenv('debug_mode', 'False').lower() in ['true', '1', 't']
 
 # Initialize DB on startup
 init_db()
@@ -184,19 +185,8 @@ def api_places():
         )
         data = r.json()
 
-        #print(int(time.time()))
-        #print("params: " + json.dumps(params))
-        #print ("data: " + json.dumps(data))
-        # Save raw JSON into api_logs
-        db_conn = get_db()
-        if db_conn:
-            cur = db_conn.cursor()
-            cur.execute(
-                "INSERT INTO api_logs(endpoint, params, response, timestamp) VALUES (?,?,?,?)",
-                ("places", json.dumps(params), json.dumps(data), int(time.time()))
-            )
-            db_conn.commit()
-            db_conn.close()
+        # API logs (for debugging/replay)
+        insert_log("places", json.dumps(params), json.dumps(data))
 
         return jsonify(data)
 
@@ -220,7 +210,12 @@ def api_search():
 
     try:
         r = requests.get(url, params=params, headers={"User-Agent": "YourApp/1.0"})
-        return jsonify(r.json())
+        data = r.json()
+        
+        # API logs (for debugging/replay)
+        insert_log("city_search", json.dumps(params), json.dumps(data))
+
+        return jsonify(data)
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
@@ -271,6 +266,6 @@ def favicon():
 if __name__ == "__main__":
 
     if (API_KEY != 'DEMO-API-KEY'):
-        app.run(debug=True)
+        app.run(debug=debug_mode)
     print('please update .env with an api key')
     print('exiting....')
