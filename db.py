@@ -21,6 +21,17 @@ def get_db():
         return None
 
 
+def insert_log(end_point, params, data):
+        db_conn = get_db()
+        if db_conn:
+            cur = db_conn.cursor()
+            cur.execute(
+                "INSERT INTO api_logs(endpoint, params, response, timestamp) VALUES (?,?,?,?)",
+                (end_point, params, data, int(time.time()))
+            )
+            db_conn.commit()
+            db_conn.close()
+
 def init_db():
     """Initialize the database with required tables and seed data."""
     create_new = not os.path.exists(DB_FILE)
