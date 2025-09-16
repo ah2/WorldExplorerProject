@@ -12,7 +12,9 @@ from db import *
 # Load environment variables
 load_dotenv()
 API_KEY = os.getenv("OVERTURE_API_KEY", "")
-OVERTURE_URL = os.getenv("OVERTURE_API_URL", "https://api.overturemaps.com")
+OVERTURE_URL = os.getenv("OVERTURE_API_URL", "")
+OVERTURE_countries_URL = os.getenv("OVERTURE_API_countries_URL", "")
+
 
 # Flask setup
 app = Flask(__name__)
@@ -107,7 +109,7 @@ def gallery():
     conn = get_db()
     if conn is None:
         flash("Database unavailable.")
-        return redirect(url_for("index"))
+        return redirect(url_for("home"))
 
     cur = conn.cursor()
     places = cur.execute("SELECT * FROM visited_places").fetchall()
@@ -219,6 +221,10 @@ def api_search():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
+@app.before_request
+def ensure_guest():
+    if "username" not in session:
+        session["username"] = "Guest"
 
 @app.route("/")
 def home():
@@ -234,12 +240,12 @@ def home():
 def admin():
     if 'username' not in session or session['username'] != "admin":
         flash("Access denied.")
-        return redirect(url_for("index"))
+        return redirect(url_for("home"))
 
     conn = get_db()
     if conn is None:
         flash("Database unavailable.")
-        return redirect(url_for("index"))
+        return redirect(url_for("home"))
 
     cur = conn.cursor()
     users = cur.execute("SELECT id, username FROM users").fetchall()
@@ -248,6 +254,130 @@ def admin():
 
     return render_template("admin.html", users=users, logs=logs)
 
+
+
+# --- SESSION ENDPOINT ---
+@app.route("/api/session")
+def api_session():
+    """
+    Returns the current logged-in user.
+    If no user in session, return Guest.
+    """
+    user = session.get("username", "Guest")
+    return jsonify({"user": user})
+
+
+# --- COUNTRIES ENDPOINT ---
+@app.route("/api/countries")
+def api_countries():
+    """
+    Fetch all countries from Overture Maps.
+    """
+    try:
+        res = requests.get(
+            OVERTURE_countries_URL,
+            headers={"x-api-key": API_KEY},
+            timeout=10
+        )
+
+        res.raise_for_status()
+        data = res.json()
+
+        app.logger.info(f"countries:\n\n{data}\n\n\n")
+
+        conn = sqlite3.connect(DB_FILE)
+        cur = conn.cursor()
+
+        # Convert response into a cleaner list
+        countries = []
+
+        def get_iso(iso):            
+            cur.execute("SELECT name FROM iso_countries WHERE iso_code=?", (iso,))
+            row = cur.fetchone()
+            name = row[0] if row else iso
+            return {"iso_code": iso, "name": name}
+
+        # Case 1: Response is a list
+        if isinstance(data, list):
+            for c in data:
+                props = c.get("country", {})
+                countries.append(get_iso(props))
+
+        # Case 2: Response is a FeatureCollection { "features": [...] }
+        elif isinstance(data, dict) and "features" in data:
+            for c in data["features"]:
+                props = c.get("country", {})
+                countries.append(get_iso(props))
+
+        return jsonify(countries)
+    except Exception as e:
+        app.logger.error(f"Error fetching countries: {e}")
+        return jsonify([]), 500
+
+ISO_MAPPING_URL = "https://gist.githubusercontent.com/ssskip/5a94bfcd2835bf1dea52/raw/ISO3166-1.alpha2.json"
+
+def init_iso_countries():
+    try:
+        resp = requests.get(ISO_MAPPING_URL, timeout=10)
+        resp.raise_for_status()
+        data = resp.json()  # { "US": "United States", ... }
+
+        conn = sqlite3.connect(DB_FILE)
+        cur = conn.cursor()
+
+        for code, name in data.items():
+            cur.execute(
+                "INSERT OR REPLACE INTO iso_countries (iso_code, name) VALUES (?, ?)",
+                (code.upper(), name)
+            )
+
+        conn.commit()
+        conn.close()
+
+        app.logger.info("✅ ISO country codes loaded into DB.")
+    
+    except Exception as e:
+        app.logger.info(f"❌ Failed to load ISO countries: {e}")
+
+# --- CITIES ENDPOINT ---
+@app.route("/api/cities")
+def api_cities():
+    """
+    Fetch cities in a given country.
+    Expects ?country=ISO_CODE
+    """
+    country = request.args.get("country")
+    if not country:
+        return jsonify({"error": "country parameter required"}), 400
+    
+
+    try:
+        res = requests.get(
+            f"https://api.overturemapsapi.com/places/categories?country={country}&category=locality",
+            headers={"x-api-key": API_KEY},
+            timeout=10
+        )
+
+        res.raise_for_status()
+        data = res.json()
+
+        app.logger.error(data)
+
+        cities = []
+        for c in data:
+            props = c.get("properties", {})
+            geom = c.get("geometry", {}).get("coordinates", [])
+            if len(geom) >= 2:
+                cities.append({
+                    "name": props.get("names", {}).get("primary", "Unknown"),
+                    "lat": geom[1],
+                    "lng": geom[0],
+                })
+
+        return jsonify(cities)
+    except Exception as e:
+        app.logger.error(f"Error fetching cities: {e}")
+        return jsonify([]), 500
 
 @app.route("/.well-known/appspecific/com.chrome.devtools.json")
 def chrome_devtools():
@@ -260,12 +390,17 @@ def favicon():
                                 mimetype='image/vnd.microsoft.icon')
 
 
+
+
 # -----------------------------
 # Run
 # -----------------------------
 if __name__ == "__main__":
 
     if (API_KEY != 'DEMO-API-KEY'):
+        init_iso_countries()
         app.run(debug=debug_mode)
-    print('please update .env with an api key')
+    else:
+        print('please update .env with an api key')
+
     print('exiting....')
