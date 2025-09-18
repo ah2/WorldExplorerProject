@@ -237,15 +237,6 @@ document.addEventListener("DOMContentLoaded", function () {
     const errorMsg = document.getElementById("error-msg");
     let selectedCity = null;
 
-    const userData = document.getElementById("user-data").dataset.user;
-    const displayEl = document.getElementById("user-display");
-
-    if (userData && userData.trim() !== "") {
-        displayEl.textContent = `Logged in as: ${userData}`;
-    } else {
-        displayEl.textContent = "Logged in as: Guest";
-    }
-
 
     if (btn) {
         // Start button calls backend
@@ -267,23 +258,6 @@ document.addEventListener("DOMContentLoaded", function () {
             }
         });
     }
-
-
-    const input = document.getElementById("city-input");
-    const suggestionsEl = document.getElementById("suggestions");
-
-    // On input, fetch & show city list
-    let debounceTimer;
-    input.addEventListener("input", e => {
-        btn.disabled = true; // lock until selection
-        selectedCity = null;
-
-        clearTimeout(debounceTimer);
-        debounceTimer = setTimeout(async () => {
-            const results = await searchCities(e.target.value);
-            renderSuggestions(results, input);
-        }, 300);
-    });
 
 
     // Attach listeners to the map container

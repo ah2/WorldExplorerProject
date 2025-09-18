@@ -2,12 +2,21 @@ import os
 import json
 import time
 import requests
+import logging
+from collections.abc import Iterable
+
+log_level = logging.DEBUG
+# Configure logging before creating the Flask app instance
+logging.basicConfig(level=log_level, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+
+
 from flask import Flask, render_template, request, jsonify, redirect, send_from_directory, url_for, session, flash, logging
 from dotenv import load_dotenv
-from werkzeug.security import check_password_hash
+from sys import exit
+from werkzeug.security import check_password_hash , generate_password_hash
 
 # Import our DB helper
-from db import *
+import db 
 
 # Load environment variables
 load_dotenv()
@@ -15,15 +24,13 @@ API_KEY = os.getenv("OVERTURE_API_KEY", "")
 OVERTURE_URL = os.getenv("OVERTURE_API_URL", "")
 OVERTURE_countries_URL = os.getenv("OVERTURE_API_countries_URL", "")
 
-
 # Flask setup
 app = Flask(__name__)
+
+
 app.secret_key = os.getenv("FLASK_SECRET", "dev_secret_key")
 debug_mode = os.getenv('debug_mode', 'False').lower() in ['true', '1', 't']
-
-# Initialize DB on startup
-init_db()
-
+DB_FILE_name = "world_adventure.sqlite"
 
 # -----------------------------
 # Routes
@@ -34,31 +41,20 @@ def login():
         username = request.form.get('username')
         password = request.form.get("password")
 
-        conn = get_db()
-        if conn is None:
-            flash("Database unavailable.")
-            return redirect(url_for("login"))
 
-        cur = conn.cursor()
-        try:
-            cur.execute("SELECT * FROM users WHERE username=?", (username,))
-            user = cur.fetchone()
-        except Exception as e:
-            app.logger.error(f"DB error on login: {e}")
-            flash("Login failed due to database error.")
-            conn.close()
-            return redirect(url_for("login"))
-
+        user = db.get_user(username)
+        if not isinstance(user, Iterable):
+            print(f"error: {user}")
+            return render_template("login.html")
+        
         if user and check_password_hash(user["password"], password):
             session['username'] = username
-            conn.close()
-
-            #app.logger.info( f"logged in as: { session['username'] }" )
-
+            
+            app.logger.info( f"{session ['username'] } logged in")
             return render_template("index.html")
         else:
+            app.logger.info( f"invalid user: {user}, requisting: {username}")
             flash("Invalid username or password.")
-        conn.close()
 
     return render_template("login.html")
 
@@ -80,33 +76,23 @@ def signup():
             flash("Both username and password are required.")
             return redirect(url_for("signup"))
 
-        conn = get_db()
-        if conn is None:
-            flash("Database unavailable.")
-            return redirect(url_for("signup"))
+        if not (db.get_user(username)):
+            hashed_pw = generate_password_hash(password)
 
-        cur = conn.cursor()
-        from werkzeug.security import generate_password_hash
-        hashed_pw = generate_password_hash(password)
-
-        try:
-            cur.execute("INSERT INTO users (username,password) VALUES (?,?)", (username, hashed_pw))
-            conn.commit()
-            flash("Signup successful. Please log in.")
-            conn.close()
-            return redirect(url_for("login"))
-        except Exception as e:
-            app.logger.error(f"DB error on signup: {e}")
-            flash("Signup failed. Username may already exist.")
-            conn.close()
-            return redirect(url_for("signup"))
+            st = db.insert_user(username, hashed_pw)
+            if (st == username):
+                flash("Signup successful. Please log in.")
+                return redirect(url_for("login"))
+            
+        flash("Signup failed. Username may already exist.")
+        return redirect(url_for("signup"))
 
     return render_template("signup.html")
 
 
 @app.route("/gallery")
 def gallery():
-    conn = get_db()
+    conn = db.get_db()
     if conn is None:
         flash("Database unavailable.")
         return redirect(url_for("home"))
@@ -188,7 +174,7 @@ def api_places():
         data = r.json()
 
         # API logs (for debugging/replay)
-        insert_log("places", json.dumps(params), json.dumps(data))
+        db.insert_log("places", json.dumps(params), json.dumps(data))
 
         return jsonify(data)
 
@@ -215,7 +201,7 @@ def api_search():
         data = r.json()
         
         # API logs (for debugging/replay)
-        insert_log("city_search", json.dumps(params), json.dumps(data))
+        db.insert_log("city_search", json.dumps(params), json.dumps(data))
 
         return jsonify(data)
     except Exception as e:
@@ -228,7 +214,6 @@ def ensure_guest():
 
 @app.route("/")
 def home():
-    print(str(session))
     if 'username' not in session:
         session['username'] = "Guest"
 
@@ -242,7 +227,7 @@ def admin():
         flash("Access denied.")
         return redirect(url_for("home"))
 
-    conn = get_db()
+    conn = db.get_db()
     if conn is None:
         flash("Database unavailable.")
         return redirect(url_for("home"))
@@ -283,9 +268,9 @@ def api_countries():
         res.raise_for_status()
         data = res.json()
 
-        app.logger.info(f"countries:\n\n{data}\n\n\n")
+        #app.logger.info(f"countries:\n\n{data}\n\n\n")
 
-        conn = sqlite3.connect(DB_FILE)
+        conn = db.get_db()
         cur = conn.cursor()
 
         # Convert response into a cleaner list
@@ -322,7 +307,7 @@ def init_iso_countries():
         resp.raise_for_status()
         data = resp.json()  # { "US": "United States", ... }
 
-        conn = sqlite3.connect(DB_FILE)
+        conn = db.get_db()
         cur = conn.cursor()
 
         for code, name in data.items():
@@ -361,8 +346,6 @@ def api_cities():
         res.raise_for_status()
         data = res.json()
 
-        app.logger.error(data)
-
         cities = []
         for c in data:
             props = c.get("properties", {})
@@ -397,10 +380,17 @@ def favicon():
 # -----------------------------
 if __name__ == "__main__":
 
-    if (API_KEY != 'DEMO-API-KEY'):
-        init_iso_countries()
+    if (API_KEY == 'DEMO-API-KEY'):
+        print('please update .env with an api key')
+        exit(1)
+    
+    # Initialize DB on startup
+    db.init_db(DB_FILE_name)
+    init_iso_countries()
+    if os.path.exists(DB_FILE_name):
         app.run(debug=debug_mode)
     else:
-        print('please update .env with an api key')
+        print("\033[31mDatabase not created.\033[0m")
+        
 
     print('exiting....')

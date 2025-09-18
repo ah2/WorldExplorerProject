@@ -1,6 +1,6 @@
 /.env
 /logs
-/world_adventure.db
+/world_adventure.sqlite
 /.idea
 /.venv
 /.idea

@@ -8,33 +8,41 @@
 </head>
 <body>
 <nav>
-  <span id="user-display" style="margin-right:auto; color:white;"></span>
+  <span id="user-span" style="margin-right:auto; color:white;"></span>
 
   
 <!-- inject user into a data attribute -->
 <span id="user-data" data-user="{{ session['user'] if 'user' in session else '' }}" hidden></span>
 
-`{% if session['user'] != 'Guest' %}
     <a href="{{ url_for('logout') }}">Logout</a>
-  {% else %}
+  
     <a href="{{ url_for('login') }}">Login</a>
     <a href="{{ url_for('signup') }}">Sign Up</a>
-  {% endif %}
+  
   <a href="{{ url_for('admin') }}">Admin</a>
   <a href="{{ url_for('gallery') }}">Gallery</a>
 </nav>
 
 <div id="city-screen">
-  <h2>Choose your city to start the adventure</h2>
+  <h2>Choose your country and city</h2>
 
-  <label for="city-input">Choose a city:</label><br>
-  <input id="city-input" type="text" placeholder="Type a city..." autocomplete="off">
+  <!-- Country selector -->
+  <label for="country-select">Country:</label><br>
+  <select id="country-select">
+    <option value="">-- Select a country --</option>
+  </select>
+  <br><br>
 
-  <!-- Suggestion list for JS to fill -->
-  <ul id="suggestions" class="suggestions"></ul>
+  <!-- City selector -->
+  <label for="city-select">City:</label><br>
+  <select id="city-select" disabled>
+    <option value="">-- Select a city --</option>
+  </select>
+  <br><br>
 
   <button id="start-btn" disabled>Start Adventure</button>
 </div>
+
 
 
 <div id="app" style="display:block;">
@@ -49,5 +57,6 @@
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="{{ url_for('static', filename='map.js') }}"></script>
+<script src="{{ url_for('static', filename='index.js') }}"></script>
 </body>
 </html>
